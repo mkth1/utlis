@@ -16,9 +16,11 @@ _create_artifacts() {
     if [[ ! -f ~/.ssh/kvm ]]; then
         ssh-keygen -q -N "" -f ~/.ssh/kvm
     fi
-    cp "${PWD}/userdata.yaml.tpl" "$KVM_DIR/${VM_USERDATA}.yaml"
-    sed -i '/    ssh-authorized-keys:/!b;n;c\      - '"$(cat ~/.ssh/kvm.pub)" "$KVM_DIR/${VM_USERDATA}.yaml"
-    sed -i "s/dev/${VM_NAME}/" "$KVM_DIR/${VM_USERDATA}.yaml"
+
+    cp "${PWD}/${VM_USERDATA}.yaml.tpl" "$KVM_DIR/${USERDATA}.yaml"
+ 
+    sed -i '/    ssh-authorized-keys:/!b;n;c\      - '"$(cat ~/.ssh/kvm.pub)" "$KVM_DIR/${USERDATA}.yaml"
+    sed -i "s/dev/${VM_NAME}/" "$KVM_DIR/${USERDATA}.yaml"
     echo "Downloading OS Cloud Image if needed"
     if [[ ! -f "$KVM_DIR/${CLOUD_IMAGE}" ]]; then
         wget "https://cloud.centos.org/centos/7/images/${CLOUD_IMAGE}" -P $KVM_DIR
@@ -26,7 +28,7 @@ _create_artifacts() {
     if ! [ -x "$(which cloud-localds)" ]; then
         sudo apt install cloud-utils -y
     fi
-    cloud-localds "${KVM_DIR}/${VM_USERDATA}.iso" "${KVM_DIR}/${VM_USERDATA}.yaml"
+    cloud-localds "${KVM_DIR}/${USERDATA}.iso" "${KVM_DIR}/${USERDATA}.yaml"
     cp "${KVM_DIR}/${CLOUD_IMAGE}" "${KVM_DIR}/${VM_IMG}"
     qemu-img resize "${KVM_DIR}/${VM_IMG}" 60G
     qemu-img convert -f qcow2 -O qcow2 "${KVM_DIR}/${VM_IMG}" "${KVM_DIR}/${VM_NAME}.qcow2"
@@ -43,7 +45,7 @@ create_vm(){
         --cpu host \
         --hvm \
         --disk path="${KVM_DIR}/${VM_NAME}.qcow2" \
-        --disk path="${KVM_DIR}/${VM_USERDATA}.iso",device=cdrom \
+        --disk path="${KVM_DIR}/${USERDATA}.iso",device=cdrom \
         --os-type linux \
         --os-variant centos7.0 \
         --virt-type kvm \
@@ -58,8 +60,8 @@ create_vm(){
 # Delete artifacts
 _delete_artifacts() {
     echo -e "${BLUE}Deleting if Artifacts"
-    rm -f "${KVM_DIR}/${VM_USERDATA}.iso"
-    rm -f "${KVM_DIR}/${VM_USERDATA}.yaml"
+    rm -f "${KVM_DIR}/${USERDATA}.iso"
+    rm -f "${KVM_DIR}/${USERDATA}.yaml"
     rm -f "${KVM_DIR}/${VM_IMG}"
     rm -f "${KVM_DIR}/${VM_NAME}.qcow2"
 }
@@ -112,7 +114,16 @@ if [ "$#" -lt 2 ]; then
 fi
 
 VM_NAME=$2
-VM_USERDATA="userdata-${VM_NAME}"
+
+if [[ ${VM_NAME} = master* ]]; then
+    VM_USERDATA="master-userdata"
+else
+    VM_USERDATA="worker-userdata"
+fi
+
+USERDATA="${VM_NAME}-userdata"
+
+echo $USERDATA
 VM_IMG="${VM_NAME}.img"
 for opt in "$@"; do
     case ${opt} in

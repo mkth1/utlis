@@ -21,20 +21,5 @@ runcmd:
   # Install updates
   - yum check-update
 
-  # Install docker
-  - yum install -y yum-utils device-mapper-persistent-data lvm2
-  - yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-  - yum install docker-ce docker-ce-cli containerd.io -y
-  - usermod -aG docker metal3
-  - systemctl start docker
-  - systemctl enable docker
-
-  # Install kubernetes
-  - setenforce 0
-  - sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
-  - yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
-  - systemctl enable --now kubelet
-  - kubeadm init --ignore-preflight-errors=all 
-
-# Useful for troubleshooting cloud-init issues
+#  Useful for troubleshooting cloud-init issues
 output: {all: '| tee -a /var/log/cloud-init-output.log'}

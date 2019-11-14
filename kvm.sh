@@ -20,7 +20,7 @@ _create_artifacts() {
     cp "${PWD}/${VM_USERDATA}.yaml.tpl" "$KVM_DIR/${USERDATA}.yaml"
  
     sed -i '/    ssh-authorized-keys:/!b;n;c\      - '"$(cat ~/.ssh/kvm.pub)" "$KVM_DIR/${USERDATA}.yaml"
-    sed -i "s/dev/${VM_NAME}/" "$KVM_DIR/${USERDATA}.yaml"
+    sed -i "s/: dev/: ${VM_NAME}/" "$KVM_DIR/${USERDATA}.yaml"
     echo "Downloading OS Cloud Image if needed"
     if [[ ! -f "$KVM_DIR/${CLOUD_IMAGE}" ]]; then
         wget "https://cloud.centos.org/centos/7/images/${CLOUD_IMAGE}" -P $KVM_DIR
@@ -123,7 +123,6 @@ fi
 
 USERDATA="${VM_NAME}-userdata"
 
-echo $USERDATA
 VM_IMG="${VM_NAME}.img"
 for opt in "$@"; do
     case ${opt} in

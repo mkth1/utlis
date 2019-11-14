@@ -1,8 +1,11 @@
 #cloud-config
 hostname: dev
+fqdn: dev
+
+package_update: true
 
 users:
-  - name: metal3
+  - name: centos
     groups: wheel
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
     lock_passwd: false
@@ -19,10 +22,6 @@ yum_repos:
         gpgkey: https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 
 runcmd:
-  - [ ifup, eth1 ]
-  # Install updates
-  - yum check-update
-
   # Install keepalived
   - yum install -y gcc kernel-headers kernel-devel
   - yum install -y keepalived
@@ -42,7 +41,8 @@ runcmd:
   - sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
   - yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
   - systemctl enable --now kubelet
-  - kubeadm init --token "rjptsr.83zrnxd8yhrnbp8l" --apiserver-advertise-address 192.168.111.249 -v 5
+  - kubeadm init --ignore-preflight-errors=all --token "rjptsr.83zrnxd8yhrnbp8l" --control-plane-endpoint "192.168.122.254:6443" --upload-certs -v 3
+  # - kubeadm init --ignore-preflight-errors=all --token "rjptsr.83zrnxd8yhrnbp8l" --apiserver-advertise-address 192.168.122.254 -v 3
   - mkdir -p /home/centos/.kube
   - cp /etc/kubernetes/admin.conf /home/centos/.kube/config
   - chown centos:centos /home/centos/.kube/config
@@ -56,16 +56,6 @@ write_files:
     content: |
       ! Configuration File for keepalived
 
-      global_defs {
-         notification_email {
-           sysadmin@mydomain.com
-           support@mydomain.com
-         }
-         notification_email_from lb1@mydomain.com
-         smtp_server localhost
-         smtp_connect_timeout 30
-      }
-
       vrrp_instance VI_1 {
           state MASTER
           interface eth0
@@ -77,7 +67,6 @@ write_files:
               auth_pass 1111
           }
           virtual_ipaddress {
-              192.168.111.249
+              192.168.122.254
           }
       }
-
